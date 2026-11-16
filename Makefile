@@ -2,7 +2,8 @@ CC = gcc
 CPPFLAGS = -Iinclude -MMD -MP
 CFLAGS = -Wall -Wextra -Wpedantic -std=c23
 LDFLAGS =
-LDLIBS =
+LDLIBS = -lSDL3
+EXE = Game
 
 BUILD ?= debug
 
@@ -32,7 +33,7 @@ BIN_DIR = $(BUILD_DIR)/bin
 SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
 OBJ_FILES = $(SRC_FILES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 DEP_FILES = $(OBJ_FILES:.o=.d)
-TARGET = $(BIN_DIR)/vellum
+TARGET = $(BIN_DIR)/$(EXE)
 
 all: $(TARGET)
 
