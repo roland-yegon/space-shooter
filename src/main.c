@@ -8,7 +8,7 @@ int main(void)
     int win_width = 800;
     int win_height = 600;
     
-    float sprite_length = 120.0f;
+    float sprite_length = 60.0f;
     float sprite_x_pos = 100.0f;
     float sprite_y_pos = 100.0f;
 
@@ -42,8 +42,15 @@ int main(void)
     bool running = true;
     SDL_FRect sprite = {sprite_x_pos, sprite_y_pos, sprite_length, sprite_length};
 
+    float speed = 20000.0f;
+    Uint64 previousTime = SDL_GetTicks();
+
     while(running)
     {
+        Uint64 currentTime = SDL_GetTicks();
+        float deltaTime = (currentTime - previousTime) / 1000.0f;
+        previousTime = currentTime;
+
         SDL_Event event;
         while(SDL_PollEvent(&event))
         {
@@ -61,12 +68,32 @@ int main(void)
                             SDL_Log("Escape key pressed. Exiting...");
                             running = false;
                             break;
+                        
+                        case SDLK_RIGHT:
+                            sprite.x += speed * deltaTime;
+                            break;
+                        
+                        case SDLK_LEFT:
+                            sprite.x -= speed * deltaTime;
+                            break;
+                        
+                        case SDLK_UP:
+                            sprite.y -= speed * deltaTime;
+                            break;
+                        
+                        case SDLK_DOWN:
+                            sprite.y += speed * deltaTime;
+                            break;
                     }
             }
         }
 
         SDL_SetRenderDrawColor(renderer, 127, 0, 255, 255);
         SDL_RenderClear(renderer);
+
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderFillRect(renderer, &sprite);
+
         SDL_RenderPresent(renderer);
 
     }
