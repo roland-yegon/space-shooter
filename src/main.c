@@ -1,7 +1,13 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
+#include <SDL3_mixer/SDL_mixer.h>
 #include <stdbool.h>
 #include <stdlib.h>
+
+#define WIN_WIDTH     800
+#define WIN_HEIGHT    600
+#define SPRITE_SIZE   50.0f
+#define SPRITE_SPEED  300.0f
 
 int main(void)
 {
@@ -9,52 +15,90 @@ int main(void)
     SDL_Renderer *renderer = NULL;
     SDL_Texture *background = NULL;
 
+    MIX_Mixer *mixer = NULL;
+    MIX_Audio *music = NULL;
+    MIX_Track *track = NULL;
+
     int status = EXIT_FAILURE;
-    int win_width = 800;
-    int win_height = 600;
+    bool running = true;
 
-    float sprite_length = 50.0f;
-    float sprite_width = 50.0f;
+    SDL_FRect sprite = {
+        (WIN_WIDTH - SPRITE_SIZE) / 2.0f,
+        WIN_HEIGHT - (SPRITE_SIZE + 2.0f),
+        SPRITE_SIZE,
+        SPRITE_SIZE
+    };
 
-    float sprite_x_pos = (win_width - sprite_width) / 2.0f;
-    float sprite_y_pos = win_height - (sprite_length + 2.0f);
-
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error during initialization: %s", SDL_GetError());
         goto cleanup;
     }
 
-    window = SDL_CreateWindow("SPACE SHOOTER", win_width, win_height, SDL_WINDOW_RESIZABLE);
+    if (!MIX_Init()) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while initializing mixer: %s", SDL_GetError());
+        goto cleanup;
+    }
 
+    window = SDL_CreateWindow("SPACE SHOOTER", WIN_WIDTH, WIN_HEIGHT, SDL_WINDOW_RESIZABLE);
     if (window == NULL) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while creating the window: %s", SDL_GetError());
         goto cleanup;
     }
 
     renderer = SDL_CreateRenderer(window, NULL);
-
     if (renderer == NULL) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while creating the renderer: %s", SDL_GetError());
         goto cleanup;
     }
 
-    background = IMG_LoadTexture(renderer, "static/background.png");
+    SDL_SetRenderVSync(renderer, 1);
 
+    background = IMG_LoadTexture(renderer, "static/images/background_photo.png");
     if (background == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while creating the texture: %s", SDL_GetError());
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while loading the background: %s", SDL_GetError());
         goto cleanup;
     }
 
-    bool running = true;
-    SDL_FRect sprite = {sprite_x_pos, sprite_y_pos, sprite_width, sprite_length};
+    mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL);
+    if (mixer == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while creating the mixer: %s", SDL_GetError());
+        goto cleanup;
+    }
 
-    float speed = 300.0f;
-    Uint64 previousTime = SDL_GetTicks();
+    music = MIX_LoadAudio(mixer, "static/music/background_music.mp3", false);
+    if (music == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while loading the music: %s", SDL_GetError());
+        goto cleanup;
+    }
+
+    track = MIX_CreateTrack(mixer);
+    if (track == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while creating the track: %s", SDL_GetError());
+        goto cleanup;
+    }
+
+    if (!MIX_SetTrackAudio(track, music)) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while assigning audio to track: %s", SDL_GetError());
+        goto cleanup;
+    }
+
+    {
+        SDL_PropertiesID options = SDL_CreateProperties();
+        SDL_SetNumberProperty(options, MIX_PROP_PLAY_LOOPS_NUMBER, -1);
+
+        if (!MIX_PlayTrack(track, options)) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while playing the music: %s", SDL_GetError());
+        }
+
+        SDL_DestroyProperties(options);
+    }
+
+    Uint64 previous_time = SDL_GetTicks();
 
     while (running) {
-        Uint64 currentTime = SDL_GetTicks();
-        float deltaTime = (currentTime - previousTime) / 1000.0f;
-        previousTime = currentTime;
+        Uint64 current_time = SDL_GetTicks();
+        float delta_time = (current_time - previous_time) / 1000.0f;
+        previous_time = current_time;
 
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
@@ -65,25 +109,40 @@ int main(void)
                 break;
 
             case SDL_EVENT_KEY_DOWN:
-                switch (event.key.key) {
-                case SDLK_ESCAPE:
+                if (event.key.key == SDLK_ESCAPE) {
                     SDL_Log("Escape key pressed. Exiting...");
                     running = false;
-                    break;
                 }
+                break;
+
+            default:
+                break;
             }
         }
 
         const bool *keys = SDL_GetKeyboardState(NULL);
 
         if (keys[SDL_SCANCODE_RIGHT] || keys[SDL_SCANCODE_D])
-            sprite.x += speed * deltaTime;
+            sprite.x += SPRITE_SPEED * delta_time;
         if (keys[SDL_SCANCODE_LEFT] || keys[SDL_SCANCODE_A])
-            sprite.x -= speed * deltaTime;
+            sprite.x -= SPRITE_SPEED * delta_time;
         if (keys[SDL_SCANCODE_UP] || keys[SDL_SCANCODE_W])
-            sprite.y -= speed * deltaTime;
+            sprite.y -= SPRITE_SPEED * delta_time;
         if (keys[SDL_SCANCODE_DOWN] || keys[SDL_SCANCODE_S])
-            sprite.y += speed * deltaTime;
+            sprite.y += SPRITE_SPEED * delta_time;
+
+        /* Keep the sprite inside the window, even after resizing */
+        int win_w = 0, win_h = 0;
+        SDL_GetWindowSize(window, &win_w, &win_h);
+
+        if (sprite.x < 0.0f)
+            sprite.x = 0.0f;
+        if (sprite.y < 0.0f)
+            sprite.y = 0.0f;
+        if (sprite.x > win_w - sprite.w)
+            sprite.x = win_w - sprite.w;
+        if (sprite.y > win_h - sprite.h)
+            sprite.y = win_h - sprite.h;
 
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
@@ -98,17 +157,27 @@ int main(void)
 
     status = EXIT_SUCCESS;
 
-    cleanup:
+cleanup:
+    /* Destroy in reverse order of creation */
+    if (track != NULL)
+        MIX_DestroyTrack(track);
 
-        if (window != NULL)
-            SDL_DestroyWindow(window);
+    if (music != NULL)
+        MIX_DestroyAudio(music);
 
-        if (renderer != NULL)
-            SDL_DestroyRenderer(renderer);
+    if (mixer != NULL)
+        MIX_DestroyMixer(mixer);
 
-        if (background != NULL)
-            SDL_DestroyTexture(background);
+    if (background != NULL)
+        SDL_DestroyTexture(background);
 
-        SDL_Quit();
-        return status;
+    if (renderer != NULL)
+        SDL_DestroyRenderer(renderer);
+
+    if (window != NULL)
+        SDL_DestroyWindow(window);
+
+    MIX_Quit();
+    SDL_Quit();
+    return status;
 }

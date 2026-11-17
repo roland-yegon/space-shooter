@@ -2,7 +2,7 @@ CC = gcc
 CPPFLAGS = -Iinclude -MMD -MP
 CFLAGS = -Wall -Wextra -Wpedantic -std=c23
 LDFLAGS =
-LDLIBS = -lSDL3 -lSDL3_image
+LDLIBS = -lSDL3 -lSDL3_image -lSDL3_mixer
 EXE = Game
 
 BUILD ?= debug
