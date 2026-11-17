@@ -4,10 +4,10 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#define WIN_WIDTH     800
-#define WIN_HEIGHT    600
-#define SPRITE_SIZE   50.0f
-#define SPRITE_SPEED  300.0f
+#define WIN_WIDTH 800
+#define WIN_HEIGHT 600
+#define SPRITE_SIZE 50.0f
+#define SPRITE_SPEED 300.0f
 
 int main(void)
 {
@@ -22,32 +22,32 @@ int main(void)
     int status = EXIT_FAILURE;
     bool running = true;
 
-    SDL_FRect sprite = {
-        (WIN_WIDTH - SPRITE_SIZE) / 2.0f,
-        WIN_HEIGHT - (SPRITE_SIZE + 2.0f),
-        SPRITE_SIZE,
-        SPRITE_SIZE
-    };
+    SDL_FRect sprite = {(WIN_WIDTH - SPRITE_SIZE) / 2.0f, WIN_HEIGHT - (SPRITE_SIZE + 2.0f),
+                        SPRITE_SIZE, SPRITE_SIZE};
 
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error during initialization: %s", SDL_GetError());
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error during initialization: %s",
+                     SDL_GetError());
         goto cleanup;
     }
 
     if (!MIX_Init()) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while initializing mixer: %s", SDL_GetError());
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while initializing mixer: %s",
+                     SDL_GetError());
         goto cleanup;
     }
 
     window = SDL_CreateWindow("SPACE SHOOTER", WIN_WIDTH, WIN_HEIGHT, SDL_WINDOW_RESIZABLE);
     if (window == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while creating the window: %s", SDL_GetError());
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while creating the window: %s",
+                     SDL_GetError());
         goto cleanup;
     }
 
     renderer = SDL_CreateRenderer(window, NULL);
     if (renderer == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while creating the renderer: %s", SDL_GetError());
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while creating the renderer: %s",
+                     SDL_GetError());
         goto cleanup;
     }
 
@@ -55,30 +55,35 @@ int main(void)
 
     background = IMG_LoadTexture(renderer, "static/images/background_photo.png");
     if (background == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while loading the background: %s", SDL_GetError());
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while loading the background: %s",
+                     SDL_GetError());
         goto cleanup;
     }
 
     mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL);
     if (mixer == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while creating the mixer: %s", SDL_GetError());
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while creating the mixer: %s",
+                     SDL_GetError());
         goto cleanup;
     }
 
     music = MIX_LoadAudio(mixer, "static/music/background_music.mp3", false);
     if (music == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while loading the music: %s", SDL_GetError());
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while loading the music: %s",
+                     SDL_GetError());
         goto cleanup;
     }
 
     track = MIX_CreateTrack(mixer);
     if (track == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while creating the track: %s", SDL_GetError());
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while creating the track: %s",
+                     SDL_GetError());
         goto cleanup;
     }
 
     if (!MIX_SetTrackAudio(track, music)) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while assigning audio to track: %s", SDL_GetError());
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while assigning audio to track: %s",
+                     SDL_GetError());
         goto cleanup;
     }
 
@@ -87,7 +92,8 @@ int main(void)
         SDL_SetNumberProperty(options, MIX_PROP_PLAY_LOOPS_NUMBER, -1);
 
         if (!MIX_PlayTrack(track, options)) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while playing the music: %s", SDL_GetError());
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while playing the music: %s",
+                         SDL_GetError());
         }
 
         SDL_DestroyProperties(options);
