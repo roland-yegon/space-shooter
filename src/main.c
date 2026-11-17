@@ -53,7 +53,7 @@ int main(void)
 
     SDL_SetRenderVSync(renderer, 1);
 
-    background = IMG_LoadTexture(renderer, "static/images/background_photo.png");
+    background = IMG_LoadTexture(renderer, "static/images/background_photo.jpg");
     if (background == NULL) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while loading the background: %s",
                      SDL_GetError());
